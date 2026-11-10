@@ -97,11 +97,22 @@ function sameVoice(interaction, p) {
     throw new Error("Join my voice channel to control playback.");
   }
 }
-function connectedNode() {
-  if (![...client.riffy.nodeMap.values()].some(n => n.connected)) throw new Error("Lavalink is not connected. Try again shortly.");
+async function waitForConnectedNode(timeoutMs = 15000) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const nodes = [...client.riffy.nodeMap.values()];
+    const ready = nodes.find(n => n.connected);
+    if (ready) return ready;
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  const status = [...client.riffy.nodeMap.values()]
+    .map(n => n.name + "=" + (n.connected ? "connected" : "offline"))
+    .join(", ") || "no Lavalink node initialized";
+  console.error("[Lavalink] Not ready after " + timeoutMs + "ms; " + status);
+  throw new Error("Lavalink is still connecting. Please retry in 15 seconds. If this keeps happening, check that both Railway services are running and the bot's LAVALINK_HOST and LAVALINK_PASSWORD match the Lavalink service.");
 }
 async function getOrCreatePlayer(interaction) {
-  connectedNode();
+  await waitForConnectedNode();
   const voice = voiceChannel(interaction), s = state(interaction.guildId);
   let p = player(interaction.guildId);
   if (p && p.voiceChannel !== voice.id) { p.destroy(); p = null; }
@@ -266,6 +277,8 @@ client.on("raw", packet => {
   if ([GatewayDispatchEvents.VoiceStateUpdate, GatewayDispatchEvents.VoiceServerUpdate].includes(packet.t)) client.riffy.updateVoiceState(packet);
 });
 client.riffy.on("nodeConnect", node => console.log("[Lavalink] " + node.name + " connected."));
+client.riffy.on("nodeDisconnect", (node, reason) => console.warn("[Lavalink] " + node.name + " disconnected:", reason?.reason || reason || "unknown reason"));
+client.riffy.on("nodeReconnect", node => console.log("[Lavalink] " + node.name + " reconnected."));
 client.riffy.on("nodeError", (node, error) => console.error("[Lavalink] " + node.name + ": " + error.message));
 client.riffy.on("trackStart", async (p, track) => {
   const s = state(p.guildId);
