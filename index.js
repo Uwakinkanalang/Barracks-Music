@@ -118,6 +118,7 @@ async function play(interaction, query) {
   const type = String(result.loadType || "").toLowerCase(), tracks = result.tracks || [];
   if (type.includes("playlist")) {
     for (const t of tracks) { t.info.requester = interaction.user; p.queue.add(t); }
+    s.channelId = interaction.channelId;
     if (!p.playing && !p.paused) await p.play();
     return "Added " + tracks.length + " tracks from " + (result.playlistInfo?.name || "playlist") + ".";
   }
@@ -210,7 +211,16 @@ async function runCommand(i) {
 async function runButton(i) {
   try {
     const p = player(i.guildId);
-    if (!p) throw new Error("No active player.");
+    if (!p) {
+      // A panel can outlive its Lavalink player after a bot restart or an idle disconnect.
+      // Expire the stale controls instead of returning a confusing "No active player" error.
+      await i.update({
+        content: "⏳ This music control panel has expired. Join a voice channel and use **/play** to start a new session.",
+        embeds: [],
+        components: []
+      }).catch(() => null);
+      return;
+    }
     sameVoice(i, p);
     const name = i.customId.slice(3);
     if (name === "queue") {
