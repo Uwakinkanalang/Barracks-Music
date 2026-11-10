@@ -77,8 +77,8 @@ async def join_player(interaction: discord.Interaction):
     return await voice.channel.connect(cls=wavelink.Player)
 
 
-@bot.tree.command(name="play", description="Play a SoundCloud song or supported audio URL.")
-@app_commands.describe(query="Song title or direct audio URL")
+@bot.tree.command(name="play", description="Play a YouTube or SoundCloud song, or an audio URL.")
+@app_commands.describe(query="Song title, YouTube link, SoundCloud link, or direct audio URL")
 async def play(interaction: discord.Interaction, query: str):
     player = await join_player(interaction)
     if not player:
@@ -86,16 +86,29 @@ async def play(interaction: discord.Interaction, query: str):
             await interaction.response.send_message("I couldn't join your voice channel.", ephemeral=True)
         return
     await interaction.response.defer()
-    search = query if query.startswith(("http://", "https://")) else f"scsearch:{query}"
-    try:
-        tracks = await wavelink.Playable.search(search)
-    except Exception:
-        log.exception("Audio search failed")
-        await interaction.followup.send("Search failed. Try a SoundCloud link or another title.")
-        return
+
+    is_url = query.startswith(("http://", "https://"))
+    if is_url:
+        searches = [query]
+    else:
+        searches = [f"ytsearch:{query}", f"scsearch:{query}"]
+
+    tracks = []
+    for search in searches:
+        try:
+            tracks = await wavelink.Playable.search(search)
+        except Exception:
+            log.exception("Audio search failed for %s", search)
+            continue
+        if tracks:
+            break
+
     if not tracks:
-        await interaction.followup.send("No playable track found.")
+        await interaction.followup.send(
+            "No playable track found. Try a different title or a YouTube/SoundCloud link."
+        )
         return
+
     track = tracks[0]
     if player.playing or player.paused:
         await player.queue.put_wait(track)
