@@ -30,13 +30,14 @@ plugins:
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
     clients:
-      - MUSIC
       - MWEB
-      - ANDROID_VR
       - WEB
+      - ANDROID_MUSIC
+      - ANDROID_VR
       - WEBEMBEDDED
 
 logging:
   level:
     root: INFO
     lavalink: INFO
+    dev.lavalink.youtube: DEBUG
