@@ -270,7 +270,7 @@ client.riffy = new Riffy(client, [{
       client.ws.shards.get(shardId)?.send(payload);
     }
   },
-  defaultSearchPlatform: process.env.LAVALINK_SEARCH_PLATFORM || "ytmsearch",
+  defaultSearchPlatform: process.env.LAVALINK_SEARCH_PLATFORM || "ytsearch",
   restVersion: "v4"
 });
 client.on("raw", packet => {
@@ -298,9 +298,10 @@ client.riffy.on("queueEnd", async p => {
   }, IDLE_MS);
 });
 client.riffy.on("trackError", (p, track, payload) => {
-  console.error("[Music] Track error: " + (track?.info?.title || "unknown"), payload?.error || payload);
+  const detail = payload?.exception?.message || payload?.error || payload?.message || JSON.stringify(payload || {});
+  console.error("[Music] Track error: " + (track?.info?.title || "unknown") + " | " + detail, payload || {});
   const channelId = state(p.guildId).channelId || p.textChannel;
-  client.channels.fetch(channelId).then(ch => ch?.send("⚠️ Failed to play " + (track?.info?.title || "track") + ". Skipping...")).catch(() => null);
+  client.channels.fetch(channelId).then(ch => ch?.send("⚠️ Couldn't play **" + (track?.info?.title || "that track") + "**. The YouTube source rejected playback. Try another result or a direct video link.")).catch(() => null);
 });
 client.riffy.on("trackStuck", (p, track, payload) => console.warn("[Music] Track stuck: " + track?.info?.title + " (" + payload?.thresholdMs + "ms)"));
 client.once("ready", async () => {
