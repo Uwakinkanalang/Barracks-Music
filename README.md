@@ -2,56 +2,62 @@
 
 **Bringing Soldiers Together and Keeping the Barracks Alive!**
 
-Discord music bot built with Python, discord.py, Wavelink, and Lavalink 4.
+A standalone music-only Discord bot based on the music player architecture from [Barracks-Bot](https://github.com/Uwakinkanalang/Barracks-Bot). It uses Discord.js, Riffy, and Lavalink 4. All non-music Barracks-Bot features are excluded.
 
-## Commands
-- `/play <query>` — SoundCloud search or supported direct audio URL
-- `/pause`, `/resume`, `/skip`, `/stop`
-- `/queue`, `/nowplaying`
-- `/volume <0-100>`, `/loop`, `/leave`, `/help`
+## Music commands
+
+- `/play query:` Search and play a song, YouTube Music query, or supported URL
+- `/join` Join your voice channel
+- `/queue` Show upcoming tracks
+- `/nowplaying` Show the current track
+- `/music pause`, `resume`, `skip`, `stop`, `shuffle`
+- `/music loop` Set loop mode: off, track, or queue
+- `/music volume` Set volume from 0–100
+- `/music seek` Seek within the current track
+- `/music remove`, `move`, `clear` Manage the queue
+- `/music leave` Disconnect
+- `/music 247` Keep the bot in voice when the queue ends
+
+The now-playing panel includes playback buttons for pause, resume, skip, stop, loop, volume, shuffle, and queue.
 
 ## Railway deployment
 
-Create two services in the same Railway project from this repository.
+Create two services in the same Railway project and environment.
 
 ### Lavalink service
-1. Add a service from this GitHub repository.
-2. Set Dockerfile path to `Dockerfile.lavalink`.
-3. Add `LAVALINK_SERVER_PASSWORD` with a long random secret.
-4. Keep port 2333 private; do not create a public domain or TCP proxy.
 
-### Bot service
-1. Add another service from this repository and use the root `Dockerfile`.
-2. Set Railway variables:
+- Source: this GitHub repository
+- Dockerfile Path: `Dockerfile.lavalink`
+- Variable: `LAVALINK_SERVER_PASSWORD` = a long random secret
+- Keep port `2333` private; do not create a public domain or TCP proxy.
+
+### Barracks Music bot service
+
+- Source: this GitHub repository
+- Dockerfile Path: `Dockerfile`
+- Variables:
 
 | Variable | Value |
 |---|---|
-| `DISCORD_TOKEN` | Your Discord bot token |
-| `LAVALINK_HOST` | Lavalink service's private Railway hostname |
+| `DISCORD_TOKEN` | Discord bot token |
+| `LAVALINK_HOST` | Lavalink private Railway hostname |
 | `LAVALINK_PORT` | `2333` |
 | `LAVALINK_PASSWORD` | Same value as `LAVALINK_SERVER_PASSWORD` |
+| `LAVALINK_SEARCH_PLATFORM` | Optional; defaults to `ytmsearch` |
 
-Use the exact private hostname shown in Railway for Lavalink (normally ending in `.railway.internal`).
+Keep secrets in Railway Variables, never in Git.
 
-## Discord setup
-1. Create an application in the Discord Developer Portal and add a bot.
-2. Copy the bot token into Railway as `DISCORD_TOKEN`; never commit it to GitHub.
-3. Under OAuth2 → URL Generator, select `bot` and `applications.commands`.
-4. Grant View Channels, Send Messages, Embed Links, Connect, and Speak.
-5. Open the generated invite URL to add the bot to your server.
+## Discord permissions
 
-## Uptime
-Use one replica per service and enable restart-on-failure / always restart where available. Uptime depends on your plan limits and service health.
-
-## Audio sources
-SoundCloud, Bandcamp, and HTTP sources are enabled. YouTube is disabled. A URL must be supported by Lavalink and the provider's terms to play.
+Invite the bot with `bot` and `applications.commands` scopes. Grant View Channels, Send Messages, Embed Links, Connect, and Speak.
 
 ## Local run
-Requires Python 3.12+ and a reachable Lavalink 4 server. Set `DISCORD_TOKEN`, `LAVALINK_HOST`, `LAVALINK_PORT`, and `LAVALINK_PASSWORD`, then run:
+
+Requires Node.js 20.10+ and a reachable Lavalink 4 server.
 
 ```bash
-pip install -r requirements.txt
-python bot.py
+npm install
+DISCORD_TOKEN=... LAVALINK_HOST=... LAVALINK_PORT=2333 LAVALINK_PASSWORD=... npm start
 ```
 
-The queue and repeat setting are in memory and reset after a restart. Slash commands sync globally at startup and may take time to appear.
+Queues and per-guild playback preferences are held in memory and reset when the bot restarts. YouTube availability is subject to provider restrictions; some videos may be unavailable to Lavalink.
